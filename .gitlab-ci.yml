@@ -1,0 +1,80 @@
+#======================================================================================================
+# Stages to sequence pipeline
+stages:
+  - build
+  - deploy
+
+#======================================================================================================
+# Build lambda functions
+build:
+  stage: build
+
+  image: node:18-alpine3.15
+
+  before_script:
+    #-----------------------------------------
+    # Install zip dependency
+    - apt update
+    - apt install zip -y
+
+  script:
+    #-----------------------------------------
+    # Create destination folder for functions
+    - mkdir -p function_dir/
+
+    #-----------------------------------------
+    - npm install
+
+    #-----------------------------------------
+    # Zip lambda functions. The zip format is used for deployment on AWS
+    - zip -r function_dir/function.zip index.js node_modules/
+    - rm function_dir/function.zip
+
+  artifacts:
+    paths:
+      - function_dir/*.zip
+    expire_in: 1 hour
+
+  only:
+    #-----------------------------------------
+    # Any reference (tag or branch) starting with: dev or master
+    - /^dev.*$/
+    - /^main.*$/
+
+#======================================================================================================
+# Deploy cctv configurator lambda on staging environment
+deploy-configurator-stag:
+  stage: deploy
+
+  image: node:18-alpine3.15
+
+  before_script:
+    #-----------------------------------------
+    # Install zip and less software. Used on aws-cli installation
+    - apt update
+    - apt install zip less -y
+
+    #-----------------------------------------
+    # Install AWS CLI
+    - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    - unzip awscliv2.zip
+    - ./aws/install
+
+  script:
+    #-----------------------------------------
+    # Set AWS credentials/config
+    - mkdir -p ~/.aws
+    - echo "[default]" > ~/.aws/config
+    - echo "aws_access_key_id=$STAGING_AWS_ACCESS_KEY_ID" >> ~/.aws/config
+    - echo "aws_secret_access_key=$STAGING_AWS_SECRET_ACCESS_KEY" >> ~/.aws/config
+    - echo "region=$STAGING_AWS_REGION" >> ~/.aws/config
+
+    #-----------------------------------------
+    # Update cctv configurator lambda function
+    - aws lambda update-function-code --function-name tech_challenge --zip-file fileb://function_dir/function.zip # update with the actual lambda function name
+
+  only:
+    #-----------------------------------------
+    # Any reference (tag or branch) starting with: dev or master
+    - /^dev.*$/
+    - /^main.*$/
