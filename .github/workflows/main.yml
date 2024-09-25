@@ -3,7 +3,7 @@
 # on:
 #   push:
 #     branches:
-#       - main 
+#       - main
 
 # jobs:
 #   deploy-lambda:
@@ -16,7 +16,7 @@
 #     - name: Set up Node.js (if using Node.js for Lambda)
 #       uses: actions/setup-node@v3
 #       with:
-#         node-version: '20' 
+#         node-version: '20'
 
 #     - name: Install dependencies (for a Node.js Lambda)
 #       run: npm install
@@ -28,7 +28,7 @@
 
 #     - name: Zip Lambda Function
 #       run: |
-#         zip -r function.zip .
+#         zip -r function.zip index.js node_modules/
 
 #     - name: Deploy to AWS Lambda
 #       env:

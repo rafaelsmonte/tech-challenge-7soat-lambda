@@ -1,7 +1,6 @@
 const AWS = require("aws-sdk");
 const AmazonCognitoIdentity = require("amazon-cognito-identity-js"); // Ensure this is included in your Lambda deployment package
-
-const cognitoidentityserviceprovider = new AWS.CognitoIdentityServiceProvider();
+const cognitoIdentityServiceProvider = new AWS.CognitoIdentityServiceProvider();
 
 exports.handler = async (event) => {
   const poolData = {
@@ -29,17 +28,13 @@ exports.handler = async (event) => {
       body = event.body;
     }
 
-    // Extract parameters
     const { taxpayerId, name, email } = body;
 
-    // First, try to find the user
-    let cognitoUser = await getUserByTaxpayerId(taxpayerId);
+    let cognitoUser = await getUser(taxpayerId);
 
     if (!cognitoUser) {
       // If no user found, create a new one
       cognitoUser = await createUser(taxpayerId, name, email);
-
-      // Confirm user sign up (adminConfirmSignUp)
       await confirmUser(taxpayerId);
     }
 
@@ -60,16 +55,14 @@ exports.handler = async (event) => {
   }
 };
 
-// Function to get user by taxpayerId (username)
-async function getUserByTaxpayerId(taxpayerId) {
+async function getUser(taxpayerId) {
   try {
     const params = {
-      UserPoolId: process.env.USER_POOL_ID, // Cognito User Pool ID
-      Username: taxpayerId, // Using taxpayerId as the username
+      UserPoolId: process.env.USER_POOL_ID,
+      Username: taxpayerId,
     };
 
-    // Use AdminGetUser to retrieve user by username (taxpayerId)
-    const data = await cognitoidentityserviceprovider
+    const data = await cognitoIdentityServiceProvider
       .adminGetUser(params)
       .promise();
 
@@ -94,7 +87,7 @@ async function getUserByTaxpayerId(taxpayerId) {
 }
 
 // Function to create a new user
-async function createUser(username, name, email) {
+async function createUser(taxpayerId, name, email) {
   try {
     const attributeList = [
       new AmazonCognitoIdentity.CognitoUserAttribute({
@@ -109,15 +102,15 @@ async function createUser(username, name, email) {
 
     const signUpParams = {
       ClientId: process.env.CLIENT_ID,
-      Username: username,
-      Password: process.env.PASSWORD,
+      Username: taxpayerId, // use the taxpayerId as both username and password
+      Password: taxpayerId,
       UserAttributes: attributeList,
     };
 
-    await cognitoidentityserviceprovider.signUp(signUpParams).promise();
+    await cognitoIdentityServiceProvider.signUp(signUpParams).promise();
 
     const userData = {
-      Username: username,
+      Username: taxpayerId,
       Pool: new AmazonCognitoIdentity.CognitoUserPool({
         UserPoolId: process.env.USER_POOL_ID,
         ClientId: process.env.CLIENT_ID,
@@ -138,7 +131,7 @@ async function authenticateUser(user) {
       user.authenticateUser(
         new AmazonCognitoIdentity.AuthenticationDetails({
           Username: user.getUsername(),
-          Password: process.env.PASSWORD,
+          Password: user.getUsername(),
         }),
         {
           onSuccess: (result) => resolve(result),
@@ -152,30 +145,6 @@ async function authenticateUser(user) {
   }
 }
 
-// async function authenticateUser(user) {
-//   try {
-//     const params = {
-//       AuthFlow: "ADMIN_NO_SRP_AUTH",
-//       UserPoolId: process.env.USER_POOL_ID,
-//       ClientId: process.env.CLIENT_ID,
-//       AuthParameters: {
-//         USERNAME: user.getUsername(),
-//         // Use a fixed password, or leave this empty if your policy allows it.
-//         // This is not a recommended security practice, but it bypasses the password need.
-//         PASSWORD: "NO_PASSWORD", // Note: May need to set to a known fixed value depending on your settings.
-//       },
-//     };
-
-//     return await cognitoidentityserviceprovider
-//       .adminInitiateAuth(params)
-//       .promise();
-//   } catch (error) {
-//     console.error("Authentication failed:", error);
-//     throw error;
-//   }
-// }
-
-// Function to confirm a user (adminConfirmSignUp)
 async function confirmUser(username) {
   const params = {
     UserPoolId: process.env.USER_POOL_ID,
@@ -183,7 +152,7 @@ async function confirmUser(username) {
   };
 
   try {
-    await cognitoidentityserviceprovider.adminConfirmSignUp(params).promise();
+    await cognitoIdentityServiceProvider.adminConfirmSignUp(params).promise();
     console.log(`User ${username} has been confirmed successfully.`);
   } catch (error) {
     console.error("Error confirming user:", error);
