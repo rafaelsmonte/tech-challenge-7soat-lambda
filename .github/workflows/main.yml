@@ -1,42 +1,42 @@
-# name: Deploy AWS Lambda
+name: Deploy AWS Lambda
 
-# on:
-#   push:
-#     branches:
-#       - main 
+on:
+  push:
+    branches:
+      - main 
 
-# jobs:
-#   deploy-lambda:
-#     runs-on: ubuntu-latest
+jobs:
+  deploy-lambda:
+    runs-on: ubuntu-latest
 
-#     steps:
-#     - name: Checkout repository
-#       uses: actions/checkout@v2
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-#     - name: Set up Node.js (if using Node.js for Lambda)
-#       uses: actions/setup-node@v3
-#       with:
-#         node-version: '20' 
+    - name: Set up Node.js (if using Node.js for Lambda)
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20' 
 
-#     - name: Install dependencies (for a Node.js Lambda)
-#       run: npm install
+    - name: Install dependencies (for a Node.js Lambda)
+      run: npm install
 
-#     - name: Install AWS CLI
-#       run: |
-#         sudo apt-get update
-#         sudo apt-get install -y awscli
+    - name: Install AWS CLI
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y awscli
 
-#     - name: Zip Lambda Function
-#       run: |
-#         zip -r function.zip .
+    - name: Zip Lambda Function
+      run: |
+        zip -r function.zip .
 
-#     - name: Deploy to AWS Lambda
-#       env:
-#         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_LAMBDA_ACCESS_KEY_ID }}
-#         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_LAMBDA_SECRET_ACCESS_KEY }}
-#         AWS_REGION: 'us-east-1'  # Replace with your region
-#       run: |
-#         aws lambda update-function-code \
-#           --function-name tech-challenge-7soat-authenticator \
-#           --zip-file fileb://function.zip \
-#           --region $AWS_REGION
+    - name: Deploy to AWS Lambda
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_LAMBDA_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_LAMBDA_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-east-1'  # Replace with your region
+      run: |
+        aws lambda update-function-code \
+          --function-name tech-challenge-7soat-authenticator \
+          --zip-file fileb://function.zip \
+          --region $AWS_REGION
