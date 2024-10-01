@@ -1,20 +1,13 @@
 const AWS = require("aws-sdk");
-const AmazonCognitoIdentity = require("amazon-cognito-identity-js"); // Ensure this is included in your Lambda deployment package
+const AmazonCognitoIdentity = require("amazon-cognito-identity-js");
 const cognitoIdentityServiceProvider = new AWS.CognitoIdentityServiceProvider();
 
 exports.handler = async (event) => {
-  const poolData = {
-    UserPoolId: process.env.USER_POOL_ID,
-    ClientId: process.env.CLIENT_ID,
-  };
-
-  const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+  let response;
 
   try {
-    // Ensure the payload is correctly parsed
     let body;
 
-    // Check if the body needs parsing (when called via API Gateway)
     if (typeof event.body === "string") {
       try {
         body = JSON.parse(event.body);
@@ -38,20 +31,28 @@ exports.handler = async (event) => {
       await confirmUser(taxpayerId);
     }
 
-    // Proceed with login
     const result = await authenticateUser(cognitoUser);
 
-    return {
-      accessToken: result.getAccessToken().getJwtToken(),
-      idToken: result.getIdToken().getJwtToken(),
-      refreshToken: result.getRefreshToken().getToken(),
+    response = {
+      statusCode: 200,
+      body: JSON.stringify({
+        accessToken: result.getAccessToken().getJwtToken(),
+        idToken: result.getIdToken().getJwtToken(),
+        refreshToken: result.getRefreshToken().getToken(),
+      }),
     };
   } catch (error) {
     console.error(error);
-    return {
+    response = {
       statusCode: error.statusCode || 500,
-      error: error.message || "Internal Server Error",
+      body: JSON.stringify({
+        error: error.message || "Internal Server Error",
+      }),
     };
+  } finally {
+    console.log("response: " + response);
+
+    return response;
   }
 };
 
@@ -86,7 +87,6 @@ async function getUser(taxpayerId) {
   }
 }
 
-// Function to create a new user
 async function createUser(taxpayerId, name, email) {
   try {
     const attributeList = [
@@ -124,7 +124,6 @@ async function createUser(taxpayerId, name, email) {
   }
 }
 
-// Function to authenticate a user
 async function authenticateUser(user) {
   try {
     return await new Promise((resolve, reject) => {
